@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>System Lockdown: An IT Escape Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f1eef9; --surface:#ffffff; --ink:#221a3d; --muted:#5b5380; --line:#d9d2ee;
+  --accent:#6a45d6; --on-accent:#ffffff; --focus:#e08a00;
+  --rack:#2b2640; --rack-edge:#1b1730; --bay:#3a3456; --rack-ink:#e8e3fa; --rack-muted:#a99fcf;
+  --led-red:#ff5a5a; --led-amber:#ffb84d; --led-green:#4be39b;
+  --bad-ink:#b42323; --good-ink:#0f7a4e; --note:#fff1a8; --note-ink:#3a3000;
+  --chip:#ece7fb; --chip-on:#6a45d6;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17112b; --surface:#221a3d; --ink:#efeaff; --muted:#aaa0d2; --line:#3a3160;
+    --accent:#a184ff; --on-accent:#140d29; --focus:#ffb84d;
+    --rack:#0f0a20; --rack-edge:#060312; --bay:#1f1838; --rack-ink:#e8e3fa; --rack-muted:#9a90c4;
+    --bad-ink:#ff8f8f; --good-ink:#72f0b8; --note:#f3e17a; --note-ink:#2c2400;
+    --chip:#2e2550; --chip-on:#a184ff;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17112b; --surface:#221a3d; --ink:#efeaff; --muted:#aaa0d2; --line:#3a3160;
+  --accent:#a184ff; --on-accent:#140d29; --focus:#ffb84d;
+  --rack:#0f0a20; --rack-edge:#060312; --bay:#1f1838; --rack-ink:#e8e3fa; --rack-muted:#9a90c4;
+  --bad-ink:#ff8f8f; --good-ink:#72f0b8; --note:#f3e17a; --note-ink:#2c2400;
+  --chip:#2e2550; --chip-on:#a184ff;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:clamp(17px,0.9vw + 12px,22px); line-height:1.5;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--rack)}
+h1,h2,.display,.btn,.clock,.bay-label,.bay-num{font-family:"Chakra Petch","Segoe UI",system-ui,sans-serif}
+h1{font-size:clamp(2.6rem,6vw,4.6rem);line-height:1;margin:0 0 .4em;letter-spacing:-.01em}
+h2{font-size:clamp(1.5rem,2.6vw,2.2rem);line-height:1.15;margin:.1em 0 .4em}
+p{margin:0 0 1em;max-width:62ch}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.btn{
+  font-weight:600;padding:.6em 1.2em;border-radius:8px;border:2px solid var(--accent);
+  background:var(--accent);color:var(--on-accent);cursor:pointer;
+}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(16px,3vw,36px)}
+
+/* Rack */
+.rack{
+  background:var(--rack);border:3px solid var(--rack-edge);border-radius:6px;
+  padding:12px;display:flex;flex-direction:column;gap:8px;color:var(--rack-ink);
+}
+.bay{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:3px;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 6px,rgba(255,255,255,.04) 6px 8px),
+    var(--bay);
+  border:1px solid rgba(255,255,255,.06);
+}
+.bay-num{font-weight:700;color:var(--rack-muted);width:1.2em}
+.bay-label{font-weight:600}
+.led{width:14px;height:14px;border-radius:50%;flex:none;background:var(--led-red);box-shadow:0 0 10px var(--led-red)}
+.bay.active{outline:2px solid var(--led-amber);outline-offset:-2px}
+.bay.active .led{background:var(--led-amber);box-shadow:0 0 12px var(--led-amber);animation:blink 1s steps(2,start) infinite}
+.bay.done .led{background:var(--led-green);box-shadow:0 0 12px var(--led-green)}
+@keyframes blink{50%{opacity:.25}}
+
+/* Intro */
+.intro{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:clamp(24px,5vw,64px);align-items:center;min-height:90vh}
+.lede{font-size:1.2em}
+.setup{display:grid;gap:18px;margin-top:1.4em;max-width:520px}
+.setup label{display:grid;gap:6px;font-weight:700}
+.setup input[type=text]{padding:.6em .8em;border-radius:8px;border:2px solid var(--line);background:var(--surface)}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{display:block;font-weight:600}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:block;padding:.45em .9em;border-radius:999px;background:var(--chip);border:2px solid transparent;cursor:pointer}
+.chips input:checked + span{border-color:var(--chip-on);color:var(--accent)}
+.chips input:focus-visible + span{outline:3px solid var(--focus);outline-offset:2px}
+
+/* Game */
+.bar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--rack);color:var(--rack-ink);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px clamp(16px,3vw,36px);flex-wrap:wrap;
+}
+.clock{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;font-variant-numeric:tabular-nums;color:var(--led-amber)}
+.clock.low{color:var(--led-red)}
+.bar .team{font-weight:700}
+.bar .hc{color:var(--rack-muted)}
+.game{display:grid;grid-template-columns:240px 1fr;gap:clamp(16px,3vw,32px);align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:clamp(18px,3vw,36px)}
+.lock-of{color:var(--muted);font-weight:700;margin:0}
+.story{color:var(--muted)}
+.feedback{min-height:1.6em;font-weight:700;margin:1em 0 .5em}
+.feedback.bad{color:var(--bad-ink)}
+.feedback.good{color:var(--good-ink)}
+.hints{border-top:1px dashed var(--line);margin-top:1em;padding-top:1em}
+.hints ul{margin:.8em 0 0;padding-left:1.2em}
+.hints li{margin-bottom:.4em;max-width:62ch}
+
+/* Puzzle 1 */
+.riddles{padding-left:1.4em;display:grid;gap:14px;margin:0 0 1.2em}
+.riddles label{display:grid;gap:6px}
+.riddles select{padding:.45em .6em;border-radius:8px;border:2px solid var(--line);background:var(--surface);max-width:280px}
+
+/* Puzzle 2 */
+.match{display:grid;grid-template-columns:1fr 1.6fr;gap:18px;margin-bottom:1.2em}
+.match h3{font-family:"Chakra Petch",system-ui,sans-serif;font-size:1em;margin:0 0 8px;color:var(--muted)}
+.col{display:grid;gap:8px;align-content:start}
+.tile{
+  text-align:left;padding:.6em .8em;border-radius:8px;border:2px solid var(--line);background:var(--surface);cursor:pointer;
+  display:flex;gap:10px;align-items:center;
+}
+.tile.sel{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.badge{
+  font-family:"Chakra Petch",system-ui,sans-serif;font-weight:700;min-width:1.8em;height:1.8em;border-radius:6px;
+  display:inline-grid;place-items:center;background:var(--chip);color:var(--accent);flex:none;
+}
+.badge.empty{color:var(--muted)}
+
+/* Puzzle 3 */
+.order{list-style:none;padding:0;margin:0 0 1.2em;display:grid;gap:8px}
+.order li{display:flex;align-items:center;gap:10px;padding:.5em .6em;border:2px solid var(--line);border-radius:8px;background:var(--surface)}
+.order .pos{font-family:"Chakra Petch",system-ui,sans-serif;font-weight:700;color:var(--muted);width:1.4em;text-align:center}
+.order .txt{flex:1}
+.mv{display:flex;gap:6px}
+.mv button{width:2.2em;height:2.2em;border-radius:6px;border:2px solid var(--line);background:var(--chip);cursor:pointer}
+.mv button:disabled{opacity:.35;cursor:not-allowed}
+
+/* Puzzle 4 */
+.note{
+  background:var(--note);color:var(--note-ink);padding:18px 22px;border-radius:2px;transform:rotate(-1.5deg);
+  display:inline-block;margin:.4em 0 1.4em;box-shadow:0 6px 14px rgba(0,0,0,.15);
+}
+.note .bits{font-family:"Chakra Petch",system-ui,sans-serif;font-size:clamp(1.6rem,3.4vw,2.6rem);font-weight:700;letter-spacing:.06em;word-spacing:.4em}
+.decoder{border:2px dashed var(--line);border-radius:10px;padding:14px 16px;margin-bottom:1.4em;max-width:520px}
+.decoder p{margin:0 0 .6em}
+.bitrow{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.bit{display:grid;gap:4px;justify-items:center}
+.bit small{color:var(--muted);font-weight:700}
+.bit button{
+  width:2.6em;height:2.6em;border-radius:8px;border:2px solid var(--line);background:var(--surface);
+  font-family:"Chakra Petch",system-ui,sans-serif;font-weight:700;font-size:1.1em;cursor:pointer;
+}
+.bit button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.eq{font-family:"Chakra Petch",system-ui,sans-serif;font-size:1.6em;font-weight:700;margin-left:6px}
+.keypad{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.keypad input{
+  width:6.5em;padding:.4em .6em;font-family:"Chakra Petch",system-ui,sans-serif;font-size:1.6em;font-weight:700;
+  letter-spacing:.3em;border-radius:8px;border:2px solid var(--line);background:var(--surface);
+}
+
+/* Puzzle 5 */
+.email{border:2px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:1.2em;max-width:720px}
+.email .head{background:var(--chip);padding:12px 16px;display:grid;gap:4px}
+.email .body{padding:16px}
+.email .body p{margin:0 0 .8em}
+.seg{
+  font:inherit;background:none;border:0;padding:0 .1em;margin:0;cursor:pointer;color:inherit;text-align:left;
+  border-radius:4px;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:4px;
+}
+.seg:hover{background:var(--chip)}
+.seg.found{background:color-mix(in srgb,var(--led-red) 22%,transparent);text-decoration:none;cursor:default}
+.flags{margin:0 0 1em;padding-left:1.2em}
+.flags li{margin-bottom:.4em}
+
+/* Win / overlay */
+.win{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:clamp(24px,5vw,64px);align-items:center;min-height:90vh}
+.win .bay .led{background:var(--led-red);box-shadow:0 0 10px var(--led-red);animation:go-green .35s forwards}
+@keyframes go-green{to{background:var(--led-green);box-shadow:0 0 14px var(--led-green)}}
+.stats{display:flex;gap:28px;flex-wrap:wrap;margin:1em 0 1.6em}
+.stats div{display:grid}
+.stats b{font-family:"Chakra Petch",system-ui,sans-serif;font-size:2em;line-height:1.1}
+.stats span{color:var(--muted)}
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 88%,transparent);display:grid;place-items:center;z-index:20;padding:20px}
+.overlay .panel{max-width:520px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+
+/* Host key */
+.host{margin-top:28px}
+.host summary{cursor:pointer;font-weight:700}
+.host ol{padding-left:1.3em}
+
+@media (max-width:760px){
+  .intro,.win,.game{grid-template-columns:1fr}
+  .intro,.win{min-height:auto}
+  .rack{flex-direction:row}
+  .bay{flex:1;justify-content:center;padding:10px 4px}
+  .bay-label{display:none}
+  .game .bay-num{width:auto}
+  .match{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  .bay.active .led{animation:none}
+  .win .bay .led{animation-duration:.01s;animation-delay:0s !important}
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const app = $('#app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+const state = { team:'', duration:600, elapsed:0, penalty:0, idx:0, solved:[], hintsUsed:0, hintsShown:{}, timer:null, paused:false, clockOff:false };
+
+/* ---------- Puzzles ---------- */
+const PARTS = ['CPU','RAM','SSD','GPU','PSU','Motherboard'];
+
+const PUZZLES = [
+{
+  short:'Hardware', title:'The parts bin',
+  story:'The door panel won’t open until your team identifies five parts from the spare parts bin. Read each clue and pick the part.',
+  riddles:[
+    { q:'I do the thinking: billions of calculations a second, and I need a cooler on top of me.', a:'CPU' },
+    { q:'I hold what you’re working on right now, but cut the power and I forget everything.', a:'RAM' },
+    { q:'I keep your files even when the computer is off, and I have no moving parts.', a:'SSD' },
+    { q:'I turn power from the wall outlet into power the computer can use.', a:'PSU' },
+    { q:'Everything plugs into me. I’m the main circuit board that connects it all.', a:'Motherboard' }
+  ],
+  hints:[
+    'Short-term memory that forgets when the power goes off is RAM. Long-term storage is the SSD.',
+    'PSU stands for power supply unit. The GPU handles graphics, and it isn’t an answer here.'
+  ],
+  html(){
+    return `<ol class="riddles">${this.riddles.map((r,i)=>`
+      <li><label><span>${r.q}</span>
+        <select data-i="${i}" aria-label="Part for clue ${i+1}">
+          <option value="">Choose a part</option>${PARTS.map(p=>`<option>${p}</option>`).join('')}
+        </select></label></li>`).join('')}</ol>
+      <button class="btn" id="check">Check parts</button>`;
+  },
+  bind(){
+    $('#check').onclick = () => {
+      const sels = $$('.riddles select');
+      if (sels.some(s => !s.value)) return fb('Pick a part for every clue first.', 'bad');
+      const n = sels.filter((s,i) => s.value === this.riddles[i].a).length;
+      n === sels.length ? solve() : fb(`${n} of ${sels.length} are right. Keep going.`, 'bad');
+    };
+  },
+  key:'CPU, RAM, SSD, PSU, Motherboard (in clue order).'
+},
+{
+  short:'Ports', title:'The cable tangle',
+  story:'Someone unplugged everything behind the front desk. Match each port to its job: tap a port, then tap the job it does.',
+  ports:[
+    { id:'hdmi', name:'HDMI' }, { id:'rj45', name:'RJ45 (Ethernet)' }, { id:'usbc', name:'USB-C' },
+    { id:'vga', name:'VGA' }, { id:'aux', name:'3.5 mm audio' }
+  ],
+  jobs:[
+    { id:'hdmi', t:'Sends video and sound to a TV or projector' },
+    { id:'rj45', t:'Connects to the wired network' },
+    { id:'usbc', t:'Charges a phone and moves data, and it fits either way up' },
+    { id:'vga', t:'An older video-only port with 15 pins, usually blue' },
+    { id:'aux', t:'Plugs in wired headphones' }
+  ],
+  hints:[
+    'Only one of these ports carries sound and video together in one cable.',
+    'RJ45 looks like a wider phone jack. VGA is the old blue one that screws in.'
+  ],
+  html(){
+    this.sel = null; this.pairs = {};
+    this.jobOrder = shuffle(this.jobs);
+    return `<div class="match">
+      <div><h3>Ports</h3><div class="col" id="ports"></div></div>
+      <div><h3>Jobs</h3><div class="col" id="jobs"></div></div>
+    </div>
+    <div class="row"><button class="btn" id="check">Check connections</button><button class="btn ghost" id="clear">Unplug all</button></div>`;
+  },
+  draw(){
+    const letter = i => String.fromCharCode(65 + i);
+    $('#ports').innerHTML = this.ports.map((p,i)=>`
+      <button class="tile ${this.sel===p.id?'sel':''}" data-p="${p.id}" aria-pressed="${this.sel===p.id}">
+        <span class="badge">${letter(i)}</span>${p.name}</button>`).join('');
+    $('#jobs').innerHTML = this.jobOrder.map(j=>{
+      const pid = Object.keys(this.pairs).find(k => this.pairs[k] === j.id);
+      const i = this.ports.findIndex(p => p.id === pid);
+      return `<button class="tile" data-j="${j.id}">
+        <span class="badge ${pid?'':'empty'}" aria-label="${pid?'Connected to '+letter(i):'Not connected'}">${pid?letter(i):'?'}</span>${j.t}</button>`;
+    }).join('');
+    $$('#ports .tile').forEach(b => b.onclick = () => { this.sel = b.dataset.p; this.draw(); fb('Now tap the job for that port.', ''); });
+    $$('#jobs .tile').forEach(b => b.onclick = () => {
+      if (!this.sel) return fb('Tap a port first, then its job.', 'bad');
+      for (const k in this.pairs) if (this.pairs[k] === b.dataset.j) delete this.pairs[k];
+      this.pairs[this.sel] = b.dataset.j; this.sel = null; this.draw(); fb('', '');
+    });
+  },
+  bind(){
+    this.draw();
+    $('#clear').onclick = () => { this.pairs = {}; this.sel = null; this.draw(); fb('', ''); };
+    $('#check').onclick = () => {
+      if (Object.keys(this.pairs).length < this.ports.length) return fb('Connect every port before checking.', 'bad');
+      const n = this.ports.filter(p => this.pairs[p.id] === p.id).length;
+      n === this.ports.length ? solve() : fb(`${n} of ${this.ports.length} connections are right.`, 'bad');
+    };
+  },
+  key:'HDMI: video and sound. RJ45: wired network. USB-C: charge and data, reversible. VGA: old blue video port. 3.5 mm: headphones.'
+},
+{
+  short:'Troubleshooting', title:'The help desk playbook',
+  story:'Real IT pros follow the same six troubleshooting steps every time. The playbook pages got shuffled. Put them back in order.',
+  steps:[
+    'Identify the problem',
+    'Come up with a theory of what’s causing it',
+    'Test the theory to find the cause',
+    'Make a plan and put the fix in place',
+    'Check that everything works, and prevent it from happening again',
+    'Write down what you found and what you did'
+  ],
+  hints:[
+    'You can’t fix something before you know what’s wrong. Start by identifying the problem, and finish by documenting.',
+    'Theory comes before testing, and you check that everything works right after the fix.'
+  ],
+  html(){
+    if (!this.order) { do { this.order = shuffle([0,1,2,3,4,5]); } while (this.order.every((v,i)=>v===i)); }
+    return `<ol class="order" id="order"></ol><button class="btn" id="check">Check the playbook</button>`;
+  },
+  draw(){
+    const n = this.order.length;
+    $('#order').innerHTML = this.order.map((s,i)=>`
+      <li><span class="pos">${i+1}</span><span class="txt">${this.steps[s]}</span>
+        <span class="mv">
+          <button data-up="${i}" ${i===0?'disabled':''} aria-label="Move up: ${this.steps[s]}">▲</button>
+          <button data-down="${i}" ${i===n-1?'disabled':''} aria-label="Move down: ${this.steps[s]}">▼</button>
+        </span></li>`).join('');
+    const swap = (a,b,focusSel) => { [this.order[a], this.order[b]] = [this.order[b], this.order[a]]; this.draw(); fb('', ''); const f = $(focusSel); if (f && !f.disabled) f.focus(); };
+    $$('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; swap(i, i-1, `[data-up="${i-1}"]`); });
+    $$('[data-down]').forEach(b => b.onclick = () => { const i = +b.dataset.down; swap(i, i+1, `[data-down="${i+1}"]`); });
+  },
+  bind(){
+    this.draw();
+    $('#check').onclick = () => {
+      const n = this.order.filter((v,i)=>v===i).length;
+      n === 6 ? solve() : fb(`${n} of 6 pages are in the right spot.`, 'bad');
+    };
+  },
+  key:'Identify, theory, test, plan and fix, verify and prevent, document.'
+},
+{
+  short:'Binary', title:'The sticky note',
+  story:'The server room keypad needs a 4-digit code. The admin left it on a sticky note… in binary. Each group of four bits is one digit.',
+  hints:[
+    'Each spot in a 4-bit group is worth 8, 4, 2, or 1. Add up the spots that have a 1.',
+    'The first group, 0111, is 4 + 2 + 1 = 7. Do the same for the other three.'
+  ],
+  html(){
+    return `<div class="note" aria-label="Sticky note reading 0111 0010 1001 0100"><div class="bits">0111 0010 1001 0100</div></div>
+      <div class="decoder">
+        <p><strong>Decoder:</strong> tap the bits to match a group and see its number.</p>
+        <div class="bitrow">
+          ${[8,4,2,1].map(v=>`<div class="bit"><small>${v}</small><button data-v="${v}" aria-pressed="false" aria-label="Bit worth ${v}">0</button></div>`).join('')}
+          <span class="eq" id="eq" aria-live="polite">= 0</span>
+        </div>
+      </div>
+      <div class="keypad">
+        <label for="code" class="display"><strong>Keypad code</strong></label>
+        <input id="code" inputmode="numeric" maxlength="4" autocomplete="off" aria-describedby="fb">
+        <button class="btn" id="check">Enter code</button>
+      </div>`;
+  },
+  bind(){
+    const upd = () => { $('#eq').textContent = '= ' + $$('.bit button').reduce((t,b)=>t + (b.getAttribute('aria-pressed')==='true' ? +b.dataset.v : 0), 0); };
+    $$('.bit button').forEach(b => b.onclick = () => {
+      const on = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', on); b.textContent = on ? '1' : '0'; upd();
+    });
+    const go = () => {
+      const v = $('#code').value.trim();
+      if (v.length !== 4) return fb('The keypad needs exactly 4 digits.', 'bad');
+      v === '7294' ? solve() : fb('Access denied. That isn’t the code.', 'bad');
+    };
+    $('#check').onclick = go;
+    $('#code').onkeydown = e => { if (e.key === 'Enter') go(); };
+  },
+  key:'7294 (0111 = 7, 0010 = 2, 1001 = 9, 0100 = 4).'
+},
+{
+  short:'Security', title:'The suspicious email',
+  story:'The last lock is a trap. This email showed up in the admin’s inbox right before the crash. Tap every part of it that’s a red flag. There are 5.',
+  segs:[
+    { t:'IT Support <it-support@schooI-helpdesk.co>', flag:true, why:'The sender is fake: that “I” is a capital i, not an L, and it isn’t the school’s real address.' },
+    { t:'URGENT!!! Your account will be DELETED in 1 hour', flag:true, why:'Panic and a tight deadline are pressure tricks to make you act without thinking.' },
+    { t:'Dear Student,', flag:true, why:'A generic greeting. Your real school knows your name.' },
+    { t:'We detected unusual activity on your school account.', flag:false },
+    { t:'To keep your account,', flag:false },
+    { t:'reply to this email with your username and password', flag:true, why:'Real IT will never ask for your password, ever.' },
+    { t:'or reset it here:', flag:false },
+    { t:'http://schoo1-login.net/reset', flag:true, why:'The link uses the number 1 instead of an L and goes to a site that isn’t your school’s.' },
+    { t:'Thank you,', flag:false },
+    { t:'The IT Department', flag:false }
+  ],
+  hints:[
+    'Look closely at the letters in the sender’s address and in the link. Some of them aren’t what they seem.',
+    'Ask yourself: would a real IT department rush you, skip your name, or ask for your password?'
+  ],
+  html(){
+    this.found = new Set();
+    const s = i => `<button class="seg" data-s="${i}">${esc(this.segs[i].t)}</button>`;
+    return `<div class="email">
+      <div class="head">
+        <div><strong>From:</strong> ${s(0)}</div>
+        <div><strong>Subject:</strong> ${s(1)}</div>
+      </div>
+      <div class="body">
+        <p>${s(2)}</p>
+        <p>${s(3)} ${s(4)} ${s(5)} ${s(6)} ${s(7)}</p>
+        <p>${s(8)}<br>${s(9)}</p>
+      </div>
+    </div>
+    <p><strong id="fcount">Red flags found: 0 of 5</strong></p>
+    <ul class="flags" id="flags"></ul>`;
+  },
+  bind(){
+    $$('.seg').forEach(b => b.onclick = () => {
+      const i = +b.dataset.s, seg = this.segs[i];
+      if (this.found.has(i)) return;
+      if (!seg.flag) return fb('That part looks normal. Look closer at the rest.', 'bad');
+      this.found.add(i); b.classList.add('found'); b.setAttribute('aria-disabled','true');
+      $('#flags').insertAdjacentHTML('beforeend', `<li>${seg.why}</li>`);
+      $('#fcount').textContent = `Red flags found: ${this.found.size} of 5`;
+      this.found.size === 5 ? solve() : fb('Good catch. Keep looking.', 'good');
+    });
+  },
+  key:'Fake sender address, urgent deadline subject, “Dear Student,” the password request, and the fake link.'
+}
+];
+
+/* ---------- Helpers ---------- */
+function fb(msg, kind){ const el = $('#fb'); if (!el) return; el.textContent = msg; el.className = 'feedback ' + (kind || ''); }
+function fmt(sec){ sec = Math.max(0, Math.round(sec)); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
+function remaining(){ return state.duration - state.elapsed - state.penalty; }
+function clockText(){ return state.duration && !state.clockOff ? fmt(remaining()) : fmt(state.elapsed + state.penalty); }
+
+function startTimer(){
+  stopTimer();
+  state.timer = setInterval(() => {
+    if (state.paused) return;
+    state.elapsed++;
+    const c = $('#clock');
+    if (c){ c.textContent = clockText(); c.classList.toggle('low', !!state.duration && !state.clockOff && remaining() <= 60); }
+    if (state.duration && !state.clockOff && remaining() <= 0) timeUp();
+  }, 1000);
+}
+function stopTimer(){ if (state.timer) clearInterval(state.timer); state.timer = null; }
+
+function rackHtml(){
+  return PUZZLES.map((q,i)=>`<div class="bay ${state.solved[i]?'done':''} ${i===state.idx && !state.solved[i]?'active':''}">
+    <span class="led" aria-hidden="true"></span><span class="bay-num">${i+1}</span><span class="bay-label">${q.short}</span>
+    <span class="sr" style="position:absolute;left:-9999px">${state.solved[i]?'unlocked':(i===state.idx?'current lock':'locked')}</span></div>`).join('');
+}
+
+function hintsHtml(){
+  const p = PUZZLES[state.idx], shown = state.hintsShown[state.idx] || 0;
+  const cost = state.duration && !state.clockOff ? ' (costs 1 minute)' : '';
+  return `${shown < p.hints.length ? `<button class="btn ghost" id="hint">Get a hint${cost}</button>` : '<p style="margin:0;color:var(--muted)">No more hints for this lock.</p>'}
+    ${shown ? `<ul>${p.hints.slice(0,shown).map(h=>`<li>${h}</li>`).join('')}</ul>` : ''}`;
+}
+function bindHints(){
+  const b = $('#hint'); if (!b) return;
+  b.onclick = () => {
+    state.hintsShown[state.idx] = (state.hintsShown[state.idx] || 0) + 1;
+    state.hintsUsed++;
+    if (state.duration && !state.clockOff) state.penalty += 60;
+    $('#hc').textContent = state.hintsUsed;
+    $('#clock').textContent = clockText();
+    $('#hints').innerHTML = hintsHtml(); bindHints();
+    if (state.duration && !state.clockOff && remaining() <= 0) timeUp();
+  };
+}
+
+function hostHtml(){
+  if (location.hash !== '#host') return '';
+  return `<details class="host panel"><summary>Host answer key</summary><ol>${PUZZLES.map(p=>`<li><strong>${p.title}:</strong> ${p.key}</li>`).join('')}</ol></details>`;
+}
+
+/* ---------- Screens ---------- */
+function renderIntro(){
+  stopTimer();
+  Object.assign(state, { elapsed:0, penalty:0, idx:0, solved:[], hintsUsed:0, hintsShown:{}, paused:false, clockOff:false });
+  PUZZLES[2].order = null;
+  const d = state.duration;
+  app.innerHTML = `<div class="wrap">
+    <section class="intro">
+      <div class="rack" aria-hidden="true">${PUZZLES.map((q,i)=>`<div class="bay"><span class="led"></span><span class="bay-num">${i+1}</span><span class="bay-label">${q.short}</span></div>`).join('')}</div>
+      <div>
+        <h1>System Lockdown</h1>
+        <p class="lede">The school network just crashed, and the server room door locked behind you. Five locks stand between you and getting everything back online.</p>
+        <p>Each lock is a real IT skill: hardware, ports, troubleshooting, binary, and spotting a phishing email. Play solo or work together as a team. If you get stuck, take a hint.</p>
+        <div class="setup">
+          <label>Team or player name <input type="text" id="team" maxlength="30" placeholder="The Packet Pushers" value="${esc(state.team)}"></label>
+          <p style="margin:0"><strong>You have 10 minutes.</strong> Each hint costs 1 minute.</p>
+          <div><button class="btn" id="start">Start the clock</button></div>
+        </div>
+      </div>
+    </section>
+    ${hostHtml()}
+  </div>`;
+  $('#start').onclick = () => {
+    state.team = $('#team').value.trim();
+    state.duration = 600;
+    renderGame(); startTimer();
+  };
+}
+
+function renderGame(){
+  const p = PUZZLES[state.idx];
+  app.innerHTML = `
+  <header class="bar">
+    <span class="team">${esc(state.team || 'Player')}</span>
+    <span class="clock ${state.duration && !state.clockOff && remaining()<=60 ? 'low':''}" id="clock" role="timer">${clockText()}</span>
+    <span class="hc">Hints used: <b id="hc">${state.hintsUsed}</b></span>
+  </header>
+  <div class="wrap">
+    <div class="game">
+      <nav class="rack" aria-label="Lock progress">${rackHtml()}</nav>
+      <section class="panel" aria-labelledby="ptitle">
+        <p class="lock-of">Lock ${state.idx+1} of ${PUZZLES.length}</p>
+        <h2 id="ptitle">${p.title}</h2>
+        <p class="story">${p.story}</p>
+        <div id="puzzle">${p.html()}</div>
+        <p class="feedback" id="fb" role="status" aria-live="polite"></p>
+        <div class="hints" id="hints">${hintsHtml()}</div>
+      </section>
+    </div>
+    ${hostHtml()}
+  </div>`;
+  p.bind(); bindHints();
+  $('#ptitle').setAttribute('tabindex','-1'); $('#ptitle').focus({preventScroll:true});
+}
+
+function solve(){
+  state.solved[state.idx] = true;
+  fb(state.idx === PUZZLES.length - 1 ? 'Final lock open!' : 'Lock opened!', 'good');
+  $('.rack').innerHTML = rackHtml();
+  $$('#puzzle button, #puzzle input, #puzzle select').forEach(el => el.disabled = true);
+  state.paused = true;
+  setTimeout(() => {
+    state.paused = false;
+    if (state.idx === PUZZLES.length - 1) return renderWin();
+    state.idx++; renderGame(); window.scrollTo({top:0});
+  }, 1300);
+}
+
+function renderWin(){
+  stopTimer();
+  const used = state.elapsed + state.penalty;
+  app.innerHTML = `<div class="wrap">
+    <section class="win">
+      <div class="rack" aria-hidden="true">${PUZZLES.map((q,i)=>`<div class="bay"><span class="led" style="animation-delay:${0.25 + i*0.3}s"></span><span class="bay-num">${i+1}</span><span class="bay-label">${q.short}</span></div>`).join('')}</div>
+      <div>
+        <h1>Network restored</h1>
+        <p class="lede">${esc(state.team || 'You')} broke through all five locks and got the school back online. That’s real IT work: hardware, connections, troubleshooting, binary, and security.</p>
+        <div class="stats">
+          <div><b>${fmt(used)}</b><span>total time${state.penalty ? ', with hint minutes' : ''}</span></div>
+          <div><b>${state.hintsUsed}</b><span>hints used</span></div>
+        </div>
+        <button class="btn" id="again">Play again</button>
+      </div>
+    </section>
+    ${hostHtml()}
+  </div>`;
+  $('#again').onclick = renderIntro;
+  submitResult(used);
+}
+
+const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfsD0OwQOZm1S78SbJ_mHF65yVKqCoSa3POsM7nX5D4DeyslQ/formResponse';
+function submitResult(sec){
+  sec = Math.max(0, Math.round(sec));
+  const time = `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+  const body = new URLSearchParams({
+    'entry.851684269': state.team || 'Unnamed player',
+    'entry.1018581300': time,
+    'entry.1208372167': String(state.hintsUsed)
+  });
+  try { fetch(FORM_URL, { method:'POST', mode:'no-cors', body }).catch(()=>{}); } catch(e) {}
+}
+
+function timeUp(){
+  state.paused = true;
+  if ($('.overlay')) return;
+  document.body.insertAdjacentHTML('beforeend', `<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="tu">
+    <div class="panel"><h2 id="tu">Time’s up</h2>
+      <p>The lockdown held this time. You opened ${state.solved.filter(Boolean).length} of ${PUZZLES.length} locks.</p>
+      <div class="row"><button class="btn" id="keep">Keep going without the clock</button><button class="btn ghost" id="restart">Start over</button></div>
+    </div></div>`);
+  $('#keep').focus();
+  $('#keep').onclick = () => {
+    $('.overlay').remove(); state.clockOff = true; state.paused = false;
+    $('#clock').textContent = clockText(); $('#clock').classList.remove('low');
+    $('#hints').innerHTML = hintsHtml(); bindHints();
+  };
+  $('#restart').onclick = () => { $('.overlay').remove(); renderIntro(); };
+}
+
+window.addEventListener('hashchange', () => {
+  const h = $('.host'); if (h) h.remove();
+  const w = $$('.wrap').pop(); if (w && location.hash === '#host') w.insertAdjacentHTML('beforeend', hostHtml());
+});
+
+renderIntro();
+</script>
+</body>
+</html>
