@@ -1058,7 +1058,7 @@ function stopTimer(){ if (state.timer) clearInterval(state.timer); state.timer =
    While an ID is blank that detail is simply not sent, and the leaderboard works as before. */
 const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfsD0OwQOZm1S78SbJ_mHF65yVKqCoSa3POsM7nX5D4DeyslQ/formResponse';
 const FIELDS = { team:'entry.851684269', time:'entry.1018581300', hints:'entry.1208372167',
-  event:'', run:'', code:'', locks:'' };
+  event:'entry.1950482752', run:'entry.1649880203', code:'entry.456368268', locks:'entry.752104819' };
 const cleanCode = v => String(v || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 20);
 const URL_CODE = (() => { try { const q = new URLSearchParams(location.search); return cleanCode(q.get('class') || q.get('code')); } catch (e) { return ''; } })();
 function newRunId(){ const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let id = ''; for (let i = 0; i < 8; i++) id += c[Math.floor(Math.random() * c.length)]; return id; }
